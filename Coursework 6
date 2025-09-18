@@ -1,0 +1,183 @@
+-- ====================================================================================
+-- Developer: ___SRIPRIYA BATTU___
+-- Date: _06_/_08_/_2025___
+-- Assignment: Homework #6
+-- Due Date: _06_/_12_/_2025___
+-- ====================================================================================
+
+-- ====================================================================================
+-- this statement will prevent messages of "(1 row(s) affected)"
+SET NOCOUNT ON
+-- ====================================================================================
+/*
+-- Here are SELECT statements that you can use to see the raw data.
+
+SELECT * FROM dbo.tb_HWCourse c
+SELECT * FROM dbo.tb_HWDepartment d
+SELECT * FROM dbo.tb_HWEmployee e
+SELECT * FROM dbo.tb_HWEnrolled en
+SELECT * FROM dbo.tb_HWStudent s
+
+SELECT * FROM dbo.Show s
+SELECT * FROM dbo.Director d
+SELECT * FROM dbo.Genre g
+SELECT * FROM dbo.ShowAward sa
+SELECT * FROM dbo.Award aw
+SELECT * FROM dbo.Role r
+SELECT * FROM dbo.Actor a
+SELECT * FROM dbo.Platform p
+SELECT * FROM dbo.Viewer v
+SELECT * FROM dbo.Viewing vw
+
+*/
+
+-- ========================================================
+-- PART 1:
+-- ========================================================
+
+-- Write the SQL to answer these questions EXACTLY.
+-- *** DO NOT include information that is not requested. ***
+-- Make sure all columns returned have column headers.
+
+-- HW 6, Q6.
+-- List each course Code, 
+-- along with how many (the count of) students are enrolled in each course.
+-- Order by CourseCode
+
+SELECT C.CourseCode, COUNT(E.SID) AS StudentCount
+FROM tb_HWCourse C
+LEFT OUTER JOIN tb_HWEnrolled E ON C.CID = E.CID
+GROUP BY C.CourseCode
+ORDER BY C.CourseCode
+
+-- HW 6, Q7.
+-- List each course Code and Course ID, 
+-- along with how many students are enrolled in each course.
+-- Only include those courses that have a count less than or equal to two (2), 
+-- as well as any course that have no enrollment (display zero (0) for those).
+-- Order by CourseCode
+
+SELECT C.CourseCode, C.CID AS CourseID, COUNT(E.SID) AS StudentCount
+FROM tb_HWCourse C
+LEFT OUTER JOIN tb_HWEnrolled E ON C.CID = E.CID
+GROUP BY C.CourseCode, C.CID
+HAVING COUNT(E.SID) <= 2
+ORDER BY C.CourseCode
+
+-- HW 6, Q8.
+-- List the current age and DOB for each student.
+-- (make sure to include their names, too, obviously)
+-- Order by the student's age, oldest first
+-- HINT:  Use GETDATE() to get the current date and time.
+-- HINT2:  Specifically, this will get the (approximate) age:
+-- (DATEDIFF(dd, S.DOB, GETDATE()) / 365)
+
+SELECT S.FirstName, S.LastName, S.DOB,(DATEDIFF(DAY, S.DOB, GETDATE()) / 365) AS Age
+FROM tb_HWStudent S
+ORDER BY Age DESC
+
+-- HW 6, Q9.
+-- List the average age of the students for each course, 
+-- as well as the number of students enrolled in the course.
+-- Be sure to list the CourseCode, the NumStudents, and the AvgAge.
+-- If a course has no enrollment, be sure to show zero (0).
+-- order by the average age, oldest of the average first.
+
+SELECT C.CourseCode, COUNT(E.SID) AS NumStudents, COALESCE(AVG(DATEDIFF(DAY, S.DOB, GETDATE()) / 365), 0) AS AvgAge
+FROM tb_HWCourse C
+LEFT OUTER JOIN tb_HWEnrolled E ON C.CID = E.CID
+LEFT OUTER JOIN tb_HWStudent S ON E.SID = S.SID
+GROUP BY C.CourseCode
+ORDER BY AvgAge DESC
+
+-- HW 6, Q10.  List all Course fields, along with all information 
+-- on who teaches the course that teach anything having 
+-- to do with Brontosaurus.
+-- Be sure to check both the Code and Description fields.
+-- Hint:  Use the wild card % to do your search
+-- Order by CourseCode (reversed)
+
+SELECT C.CourseCode, C.CourseDescription, C.CID, C.InstructorEID, E.FirstName AS InstructorFirstName, E.LastName AS InstructorLastName
+FROM tb_HWCourse C
+LEFT OUTER JOIN tb_HWEmployee E ON C.InstructorEID = E.EID
+WHERE C.CourseCode LIKE '%Brontosaurus%'
+   OR C.CourseDescription LIKE '%Brontosaurus%'
+ORDER BY C.CourseCode DESC
+
+
+-- ========================================================
+-- PART 2:
+-- ========================================================
+
+/*
+Do the same thing as above, but YOU write the five (5)
+questions from the SHOW tables, along with the SQL that
+will answer the EXACT question you came up with.
+*/
+
+/*
+NOTE: These questions should be more challenging than the ones
+you created for HW 5.  Be sure there is a good sample of
+GROUP BY, HAVING, LEFT OUTER JOINs, and Aggregate functions.
+*/
+
+-- HW 6, Q6.
+--List each actor and the total salary earned across all their roles.
+--Only include actors who have earned more than $1,000,000.
+--Order by total salary descending.
+
+SELECT A.FirstName, A.LastName, SUM(R.Salary) AS TotalSalary
+FROM Actor A
+INNER JOIN Role R ON A.ActorID = R.ActorID
+GROUP BY A.FirstName, A.LastName
+HAVING SUM(R.Salary) > 1000000
+ORDER BY TotalSalary DESC
+
+-- HW 6, Q7.
+--List each genre and the average IMDB rating of all shows in that genre.
+--Only include genres with more than one show.
+--Order by average rating descending.
+
+SELECT G.GenreDescription, AVG(S.IMDBRating) AS AvgIMDBRating, COUNT(S.ShowID) AS NumShows
+FROM Genre G
+LEFT OUTER JOIN Show S ON G.GenreID = S.GenreID
+GROUP BY G.GenreDescription
+HAVING COUNT(S.ShowID) > 1
+ORDER BY AvgIMDBRating DESC
+
+-- HW 6, Q8.
+--List each director and the total box office earnings from the shows they directed.
+--Only include directors whose shows earned over $50,000,000 in total.
+--Order by total earnings descending.
+
+SELECT D.FirstName, D.LastName, SUM(S.BoxOfficeEarnings) AS TotalEarnings
+FROM Director D
+INNER JOIN Show S ON D.DirectorID = S.DirectorID
+GROUP BY D.FirstName, D.LastName
+HAVING SUM(S.BoxOfficeEarnings) > 50000000
+ORDER BY TotalEarnings DESC
+
+-- HW 6, Q9.
+--List each genre and the number of shows in that genre.
+--Only include genres with at least 2 shows.
+--Order by the number of shows (descending).
+
+SELECT G.GenreDescription, COUNT(S.ShowID) AS ShowCount
+FROM Genre G
+LEFT OUTER JOIN Show S ON G.GenreID = S.GenreID
+GROUP BY G.GenreDescription
+HAVING COUNT(S.ShowID) >= 2
+ORDER BY ShowCount DESC
+
+-- HW 6, Q10.
+--List actors who acted in shows that won "Best Historical Romance"
+--For each actor, display actor's firstName and LastName
+--Title of the show they acted, ReleasedDate, AwardName, and Salary
+
+SELECT a.FirstName, a.LastName AS ActorName, s.Title AS ShowTitle, s.DateReleased, aw.Name AS AwardName, r.Salary
+FROM Role r
+JOIN Actor a ON r.ActorID = a.ActorID
+JOIN Show s ON r.ShowID = s.ShowID
+JOIN ShowAward sa ON s.ShowID = sa.ShowID
+JOIN Award aw ON sa.AwardID = aw.AwardID
+WHERE aw.Name = 'Best Historical Romance'
